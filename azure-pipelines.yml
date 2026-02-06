@@ -1,0 +1,37 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  imageName: 'frontend-app'
+
+stages:
+- stage: BuildAndTest
+  jobs:
+  - job: AngularBuild
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'
+
+    - script: |
+        npm install
+        npm run build -- --configuration production
+      displayName: 'npm install and build'
+
+- stage: PushToDocker
+  dependsOn: BuildAndTest
+  jobs:
+  - job: DockerPush
+    steps:
+    - task: Docker@2
+      inputs:
+        containerRegistry: 'docker-hub-connection'
+        repository: 'tugrulhan/$(imageName)'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          $(Build.BuildId)
+          latest
